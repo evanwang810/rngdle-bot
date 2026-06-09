@@ -1,0 +1,19 @@
+# local roll output
+screenshots/
+rolls.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# IDE / OS junk
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
