@@ -1,5 +1,6 @@
 import csv
 import re
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,17 @@ SCORE_RE = re.compile(r"([\d,]+)\s*EP\b")
 OUT_DIR = Path(__file__).parent / "screenshots"
 LOG = Path(__file__).parent / "rolls.csv"
 
+stop_event = threading.Event()
+_lock = threading.Lock()
+_counter = 0
+
+
+def next_idx():
+    global _counter
+    with _lock:
+        _counter += 1
+        return _counter
+
 
 def extract_score(text):
     m = SCORE_RE.search(text)
@@ -28,14 +40,15 @@ def extract_score(text):
 
 def log_row(row):
     new = not LOG.exists()
-    with open(LOG, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        if new:
-            w.writerow(["ts", "idx", "score", "file"])
-        w.writerow(row)
+    with _lock:
+        with open(LOG, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            if new:
+                w.writerow(["ts", "worker", "idx", "score", "file"])
+            w.writerow(row)
 
 
-def run(idx):
+def one_cycle(wid):
     d = webdriver.Chrome()
     try:
         d.get(URL)
@@ -45,22 +58,42 @@ def run(idx):
         time.sleep(1.5)
         text = d.find_element(By.TAG_NAME, "body").text
         score = extract_score(text)
+        idx = next_idx()
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        out = OUT_DIR / f"rngdle-{ts}-{idx:05d}.png"
+        out = OUT_DIR / f"rngdle-{ts}-w{wid}-{idx:05d}.png"
         d.save_screenshot(str(out))
-        log_row([ts, idx, score, out.name])
-        print(f"{idx:>4}  {score} EP")
+        log_row([ts, wid, idx, score, out.name])
+        print(f"[w{wid}] {idx:>4}  {score} EP")
     finally:
-        d.quit()
+        try:
+            d.quit()
+        except Exception:
+            pass
+
+
+def worker(wid):
+    while not stop_event.is_set():
+        try:
+            one_cycle(wid)
+        except Exception as e:
+            print(f"[w{wid}] err: {e}")
+        stop_event.wait(1)
 
 
 def main():
     OUT_DIR.mkdir(exist_ok=True)
-    i = 0
-    while True:
-        i += 1
-        run(i)
-        time.sleep(1)
+    n = int(input("workers: ") or "1")
+    threads = [threading.Thread(target=worker, args=(i + 1,), daemon=True) for i in range(n)]
+    for t in threads:
+        t.start()
+    try:
+        while any(t.is_alive() for t in threads):
+            for t in threads:
+                t.join(timeout=0.25)
+    except KeyboardInterrupt:
+        stop_event.set()
+        for t in threads:
+            t.join(timeout=10)
 
 
 if __name__ == "__main__":
