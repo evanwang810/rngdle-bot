@@ -64,8 +64,8 @@ Asked interactively on startup. Press Enter to accept the default.
 
 ## Output
 
-- `screenshots/rngdle-<timestamp>-w<worker>-<idx>.png` — one PNG per kept roll.
-- `rolls.csv` — append-only log: `ts, worker, idx, score, status, file`.
+- `screenshots/rngdle-<timestamp>-w<worker>-<idx>.png`: one PNG per kept roll.
+- `rolls.csv`: append-only log: `ts, worker, idx, score, status, file`.
 
 During the run each roll prints its score plus live stats (running average,
 top score, screenshots saved). At the end you get a full summary block.
@@ -74,7 +74,7 @@ top score, screenshots saved). At the end you get a full summary block.
 
 ```
 rngdle/
-  rngdle.py    # entrypoint — orchestration, kill switch, summary
+  rngdle.py    # entrypoint
   config.py    # interactive prompts + Config dataclass + ANSI helpers
   driver.py    # Chrome factory with CDP stealth, session reset, process cleanup
   worker.py    # per-thread roll loop: navigate → click → reload → extract → screenshot
@@ -100,24 +100,20 @@ Each Chrome instance is launched with a unique `--user-data-dir` under
 
 1. `taskkill /T /F` walks every tracked chromedriver process tree.
 2. A PowerShell sweep finds any surviving `chrome.exe` / `chromedriver.exe`
-   whose command line references one of our temp dirs and kills those too —
+   whose command line references one of our temp dirs and kills those too;
    this catches the orphan case where chromedriver died first.
 3. The temp dirs are removed.
 
 ## Troubleshooting
 
-- **"attempted relative import with no known parent package"** — you ran
+- **"attempted relative import with no known parent package"**: you ran
   `python rngdle.py` from inside the package folder. Either go up one level
   (`python -m rngdle`) or use the full path (`python C:\path\to\rngdle\rngdle.py`).
-- **`PermissionError: chromedriver.exe ... being used by another process`** — a
+- **`PermissionError: chromedriver.exe ... being used by another process`**: a
   prior run left Chrome around. Open Task Manager, end stray `chrome.exe` /
   `chromedriver.exe`, retry.
-- **Always stuck on Vercel checkpoint** — VPN on, drop `workers` to 1, raise
+- **Always stuck on Vercel checkpoint**: VPN on, drop `workers` to 1, raise
   `delay between cycles` to 3–5s.
-- **Same score over and over** — rngdle gives one roll per day per session;
+- **Same score over and over**: rngdle gives one roll per day per session;
   once you've hit the cap the page just keeps returning your last result.
   Use the "stop after a roll >= (EP)" option if you want to stop on a good score.
-
-## License
-
-MIT.
