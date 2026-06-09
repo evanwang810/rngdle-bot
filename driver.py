@@ -13,6 +13,7 @@ from . import state
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 
+# injected before any page script. hides the obvious automation tells.
 STEALTH = """
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
 Object.defineProperty(navigator, 'plugins', { get: () => [
@@ -47,11 +48,21 @@ def _make_userdir():
     return p
 
 
+def _parse_size(s):
+    # fall back to default if user typed garbage
+    try:
+        w, h = s.lower().split("x")
+        return int(w), int(h)
+    except Exception:
+        return 1280, 900
+
+
 def _options(cfg, userdir):
+    w, h = _parse_size(cfg.window_size)
     o = Options()
     o.page_load_strategy = "eager"
     o.add_argument(f"--user-data-dir={userdir}")
-    o.add_argument("--window-size=1280,900")
+    o.add_argument(f"--window-size={w},{h}")
     o.add_argument("--no-first-run")
     o.add_argument("--no-default-browser-check")
     o.add_argument("--mute-audio")
@@ -64,6 +75,9 @@ def _options(cfg, userdir):
     o.add_argument("--disable-blink-features=AutomationControlled")
     o.add_experimental_option("excludeSwitches", ["enable-automation"])
     o.add_experimental_option("useAutomationExtension", False)
+    if cfg.disable_images:
+        # speed hack. some bot checks render assets so this can backfire.
+        o.add_argument("--blink-settings=imagesEnabled=false")
     if cfg.headless:
         o.add_argument("--headless=new")
         o.add_argument("--disable-gpu")
@@ -97,6 +111,7 @@ def forget_driver(d):
 
 
 def reset_session(d):
+    # cheaper than reopening chrome between rolls
     try:
         d.delete_all_cookies()
     except Exception:
