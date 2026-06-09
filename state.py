@@ -32,13 +32,25 @@ def total():
 
 
 def open_log(path):
+    """Open csv for append. If it's locked (open in Excel etc.) fall back to a
+    timestamped sibling so we don't blow up."""
     global _csv_file, _csv_writer
-    new = not path.exists()
-    _csv_file = path.open("a", newline="", encoding="utf-8")
+    from datetime import datetime
+    target = path
+    try:
+        new = not target.exists()
+        _csv_file = target.open("a", newline="", encoding="utf-8")
+    except PermissionError:
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        target = path.with_name(f"{path.stem}-{ts}{path.suffix}")
+        print(f"  (rolls.csv was locked, logging to {target.name} instead)")
+        new = True
+        _csv_file = target.open("a", newline="", encoding="utf-8")
     _csv_writer = csv.writer(_csv_file)
     if new:
         _csv_writer.writerow(["ts", "worker", "idx", "score", "status", "file"])
         _csv_file.flush()
+    return target
 
 
 def log_row(row):

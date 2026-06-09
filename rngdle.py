@@ -82,7 +82,7 @@ def main():
     cfg = prompt_config()
     if cfg.clear_data:
         wipe_data()
-    state.open_log(LOG_CSV)
+    actual_log = state.open_log(LOG_CSV)
     atexit.register(kill_stragglers)
 
     # set worker module globals (live status only when single worker - otherwise
@@ -123,7 +123,7 @@ def main():
 
     state.close_log()
     kill_stragglers()
-    print_summary(time.monotonic() - t0, LOG_CSV)
+    print_summary(time.monotonic() - t0, actual_log)
 
     try:
         input(dim("press Enter to close..."))

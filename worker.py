@@ -28,13 +28,17 @@ STOP_AT_SCORE = None
 
 
 def extract_score(text):
-    m = SCORE_RE.search(text)
-    if not m:
-        return None
-    try:
-        return int(m.group(1).replace(",", ""))
-    except ValueError:
-        return None
+    # skip the lifetime EP line ("0 EP\nYOUR LIFETIME EP") - rngdle renders it
+    # before the actual roll score, and the old regex grabbed it half the time
+    for m in SCORE_RE.finditer(text):
+        ahead = text[m.end():m.end()+20].lstrip().upper()
+        if ahead.startswith("YOUR LIFETIME"):
+            continue
+        try:
+            return int(m.group(1).replace(",", ""))
+        except ValueError:
+            pass
+    return None
 
 
 def click_generate(d):
@@ -101,16 +105,17 @@ def one_cycle(d, cfg, wid):
 
     status(wid, idx, "reading score...")
     text = ""
+    score = None
     deadline = time.monotonic() + max(cfg.post_reload_delay, 0.2)
     while time.monotonic() < deadline:
         try:
             text = d.execute_script("return document.body.innerText") or ""
         except Exception:
             text = ""
-        if "EP" in text and SCORE_RE.search(text):
+        score = extract_score(text)
+        if score is not None:
             break
         time.sleep(0.05)
-    score = extract_score(text)
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]
     keep = cfg.min_score is None or (score is not None and score >= cfg.min_score)
