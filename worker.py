@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from . import state
-from .driver import new_driver
+from .driver import forget_driver, new_driver, reset_session
 
 URL = "https://rngdle.com"
 BUTTON = ("//button[contains(@class,'bg-black') and contains(@class,'uppercase') "
@@ -29,7 +29,7 @@ def extract_score(text):
 
 def one_cycle(d, cfg, wid):
     d.get(URL)
-    WebDriverWait(d, 15).until(
+    WebDriverWait(d, 30).until(
         EC.element_to_be_clickable((By.XPATH, BUTTON))
     ).click()
     if cfg.post_click_delay > 0:
@@ -52,19 +52,33 @@ def one_cycle(d, cfg, wid):
 
 def worker(cfg, wid):
     done = 0
-    while not state.stop_event.is_set():
-        if cfg.iterations and done >= cfg.iterations:
-            return
-        d = new_driver(cfg)
-        try:
-            one_cycle(d, cfg, wid)
-            done += 1
-        except Exception as e:
-            print(f"[w{wid}] err: {e}")
-        finally:
+    d = None
+    try:
+        while not state.stop_event.is_set():
+            if cfg.iterations and done >= cfg.iterations:
+                return
+            if d is None:
+                d = new_driver(cfg)
             try:
-                d.quit()
-            except Exception:
-                pass
-        if cfg.cycle_delay > 0 and not state.stop_event.is_set():
-            state.stop_event.wait(cfg.cycle_delay)
+                one_cycle(d, cfg, wid)
+                done += 1
+                if cfg.reuse_driver:
+                    reset_session(d)
+                else:
+                    forget_driver(d)
+                    try: d.quit()
+                    except Exception: pass
+                    d = None
+                if cfg.cycle_delay > 0 and not state.stop_event.is_set():
+                    state.stop_event.wait(cfg.cycle_delay)
+            except Exception as e:
+                print(f"[w{wid}] error: {e}")
+                forget_driver(d)
+                try: d.quit()
+                except Exception: pass
+                d = None
+    finally:
+        if d is not None:
+            forget_driver(d)
+            try: d.quit()
+            except Exception: pass

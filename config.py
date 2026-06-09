@@ -10,6 +10,7 @@ class Config:
     post_reload_delay: float
     cycle_delay: float
     min_score: int | None
+    reuse_driver: bool
 
 
 def ask(p, default):
@@ -48,4 +49,6 @@ def prompt_config():
     post_reload = ask_float("max wait for score (s)", "1.5")
     cycle_delay = ask_float("delay between cycles (s)", "0")
     min_score = ask_opt_int("only save if score (EP) >= (blank=off)", "")
-    return Config(workers, headless, iterations, post_click, post_reload, cycle_delay, min_score)
+    reuse_driver = ask_bool("reuse Chrome between rolls?", "y")
+    return Config(workers, headless, iterations, post_click, post_reload,
+                  cycle_delay, min_score, reuse_driver)

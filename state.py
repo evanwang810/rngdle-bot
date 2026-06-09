@@ -9,6 +9,9 @@ _counter = 0
 _csv_file = None
 _csv_writer = None
 
+_pids = set()
+_userdirs = set()
+
 
 def next_index():
     global _counter
@@ -41,3 +44,29 @@ def log_row(row):
 def close_log():
     if _csv_file is not None:
         _csv_file.close()
+
+
+def remember_pid(pid):
+    with _lock:
+        _pids.add(pid)
+
+def forget_pid(pid):
+    with _lock:
+        _pids.discard(pid)
+
+def drain_pids():
+    with _lock:
+        out = list(_pids)
+        _pids.clear()
+        return out
+
+
+def remember_userdir(p):
+    with _lock:
+        _userdirs.add(p)
+
+def drain_userdirs():
+    with _lock:
+        out = list(_userdirs)
+        _userdirs.clear()
+        return out
