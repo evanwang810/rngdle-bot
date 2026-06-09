@@ -1,3 +1,4 @@
+import csv
 import re
 import time
 from datetime import datetime
@@ -12,6 +13,7 @@ BUTTON = ("//button[contains(@class,'bg-black') and contains(@class,'uppercase')
           "and contains(@class,'w-full')]")
 SCORE_RE = re.compile(r"([\d,]+)\s*EP\b")
 OUT_DIR = Path(__file__).parent / "screenshots"
+LOG = Path(__file__).parent / "rolls.csv"
 
 
 def extract_score(text):
@@ -24,8 +26,16 @@ def extract_score(text):
         return None
 
 
-def run():
-    OUT_DIR.mkdir(exist_ok=True)
+def log_row(row):
+    new = not LOG.exists()
+    with open(LOG, "a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        if new:
+            w.writerow(["ts", "idx", "score", "file"])
+        w.writerow(row)
+
+
+def run(idx):
     d = webdriver.Chrome()
     try:
         d.get(URL)
@@ -36,14 +46,22 @@ def run():
         text = d.find_element(By.TAG_NAME, "body").text
         score = extract_score(text)
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        out = OUT_DIR / f"rngdle-{ts}.png"
+        out = OUT_DIR / f"rngdle-{ts}-{idx:05d}.png"
         d.save_screenshot(str(out))
-        print(f"score: {score} EP")
+        log_row([ts, idx, score, out.name])
+        print(f"{idx:>4}  {score} EP")
     finally:
         d.quit()
 
 
-if __name__ == "__main__":
+def main():
+    OUT_DIR.mkdir(exist_ok=True)
+    i = 0
     while True:
-        run()
+        i += 1
+        run(i)
         time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()
