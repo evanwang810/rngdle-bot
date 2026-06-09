@@ -27,19 +27,19 @@ Or run the script file directly from anywhere:
 python path\to\rngdle\rngdle.py
 ```
 
-Both work — the entrypoint self-bootstraps its package.
+Both work, the entrypoint self-bootstraps its package.
 
-> **Tip — VPN strongly recommended.** rngdle is hosted on Vercel, whose bot
+> **Tip: VPN strongly recommended.** rngdle is hosted on Vercel, whose bot
 > checkpoint trips on repeated requests from one IP. Without a VPN you'll hit
 > the rate limit after a few rolls.
 
-> **Note — headless is unreliable.** Vercel fingerprints headless Chrome. If
+> **Note: headless is unreliable.** Vercel fingerprints headless Chrome. If
 > the run gets stuck on the checkpoint with headless on, just run headed.
 
 ## Controls
 
-- `Ctrl+C` — stop after the current roll finishes.
-- `Ctrl+Q` (or `Ctrl+\`) — same thing, no Enter needed (Windows only).
+- `Ctrl+C`: stop after the current roll finishes.
+- `Ctrl+Q` (or `Ctrl+\`): same thing, no Enter needed (Windows only).
 
 ## Config options
 
@@ -48,7 +48,7 @@ Asked interactively on startup. Press Enter to accept the default.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | clear all data first | n | Delete every `.png` in `screenshots/` and remove `rolls.csv` before starting. |
-| workers | 1 | Parallel Chrome instances. **More than 1 will trip Vercel's checkpoint fast and barely speeds things up — stick with 1.** |
+| workers | 1 | Parallel Chrome instances. **More than 1 will trip Vercel's checkpoint fast and barely speeds things up so its recommended to just  stick with 1.** |
 | background mode | n | Forces headless + muted. Usually fails Vercel. |
 | headless | n | Run Chrome without a visible window. |
 | iterations per worker | 0 | 0 = infinite. |
